@@ -1,0 +1,51 @@
+---
+title: "PowerRangersTidyT"
+---
+
+#Packages Needed
+```{r}
+install.packages(tidyverse)
+install.packages(lu)
+```
+
+```{r}
+power_rangers_episodes <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-08-27/power_rangers_episodes.csv')
+prseasons <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-08-27/power_rangers_seasons.csv')
+```
+
+
+#Year effect on IMDB rating
+```{r}
+prseasons1 <- prseasons %>% 
+  mutate(YearFirstAir = year(ymd(air_date_first_ep))) %>% 
+  select(YearFirstAir, IMDB_rating, producer) 
+
+producertime <- data.frame(
+  producer = c("Saban", "Saban/Disney", "Disney", "Saban Brands"),
+  startyear = c(1993, 2002, 2003, 2011),
+  endyear = c(2002, 2003, 2011, 2022))
+
+averageratings <- prseasons1 %>%
+  group_by(producer) %>%
+  summarize(avg_rating = round(mean(IMDB_rating), digits = 1))
+
+averageratingtime <- producertime %>%
+  left_join(averageratings, by = "producer") %>% 
+  mutate(ProducerDurationYear = endyear - startyear)
+
+ggplot() +
+  geom_point(data = prseasons1, 
+             aes(x = YearFirstAir, y = IMDB_rating, color = producer,  shape = producer)) +
+  geom_rect(data = producertime, 
+            aes(xmin = startyear, xmax = endyear, ymin = -Inf, ymax = Inf, fill = producer), alpha = 0.2) +
+  geom_segment(data = averageratingtime, 
+               aes(x = startyear, xend = endyear, y = avg_rating, yend = avg_rating, color = producer), 
+               linetype = "solid", linewidth = 1) +
+  geom_text(data = averageratingtime, aes(x = startyear + .4, y = avg_rating - 0.05, label = avg_rating), size = 2)+
+  geom_text(data = averageratingtime, aes(x = startyear + .5, y = 7.90, label = paste(ProducerDurationYear, "yr")), size = 2)+
+  labs(title = "Power Rangers IMDB Rating Over Years Considering Producer", x = "Year First Air", y = "IMDB Rating") +
+  theme_minimal()
+```
+
+
+
